@@ -1,33 +1,27 @@
-FROM python:3.10-slim
+FROM python:3.12-slim
 
-# --- System deps required by Playwright browsers ---
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    wget gnupg ca-certificates curl unzip \
-    libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libxkbcommon0 \
-    libgtk-3-0 libgbm1 libasound2 libxcomposite1 libxdamage1 libxrandr2 \
-    libxfixes3 libpango-1.0-0 libcairo2 \
+    wget \
+    gnupg \
     && rm -rf /var/lib/apt/lists/*
 
-# --- Install Playwright + Chromium ---
-RUN pip install playwright && playwright install --with-deps chromium
-
-# --- Install uv package manager ---
-RUN pip install uv
-
-# --- Copy app to container ---
 WORKDIR /app
 
+# Install uv
+RUN pip install uv
+
+# Copy project files
 COPY . .
 
-ENV PYTHONUNBUFFERED=1
-ENV PYTHONIOENCODING=utf-8
+# Install dependencies
+RUN uv sync
 
-# --- Install project dependencies using uv ---
-RUN uv sync --frozen
+# Install Playwright browsers
+RUN uv run playwright install chromium --with-deps
 
-# HuggingFace Spaces exposes port 7860
+# Expose port
 EXPOSE 7860
 
-# --- Run your FastAPI app ---
-# uvicorn must be in pyproject dependencies
+# Start the application
 CMD ["uv", "run", "main.py"]
